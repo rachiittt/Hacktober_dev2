@@ -423,6 +423,102 @@ section {
 }
 .btn-add-offering:hover { transform: scale(1.08); box-shadow: var(--glow-gold); }
 
+/* Quick offerings */
+.quick-offerings-wrap {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.quick-label {
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+}
+.quick-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.quick-chip {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  border-radius: 99px;
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.quick-chip:hover {
+  background: rgba(245, 200, 66, 0.12);
+  border-color: var(--gold-dim);
+  color: var(--gold);
+  transform: translateY(-1px);
+}
+
+/* Tone Selector */
+.tone-selector-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.tone-label {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--gold);
+  font-weight: 600;
+}
+.tone-pills {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+@media (min-width: 500px) {
+  .tone-pills {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+.tone-pill {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  cursor: pointer;
+  text-align: center;
+  transition: all var(--transition);
+}
+.tone-pill:hover {
+  border-color: var(--gold-dim);
+  color: var(--text);
+  background: rgba(245, 200, 66, 0.05);
+}
+.tone-pill.active {
+  background: linear-gradient(135deg, rgba(245, 200, 66, 0.2), rgba(255, 123, 46, 0.15));
+  border-color: var(--gold);
+  color: var(--gold);
+  font-weight: 600;
+  box-shadow: 0 0 12px rgba(245, 200, 66, 0.2);
+}
+
+/* Speaking State */
+.btn-action.speaking {
+  border-color: var(--rose);
+  color: var(--rose);
+  background: rgba(242, 92, 143, 0.12);
+  animation: pulse-border 1.5s infinite;
+}
+@keyframes pulse-border {
+  0% { box-shadow: 0 0 0 0 rgba(242, 92, 143, 0.4); }
+  70% { box-shadow: 0 0 0 8px rgba(242, 92, 143, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(242, 92, 143, 0); }
+}
+
 /* ── Altar Preview ── */
 .altar-preview-panel { background: var(--bg3); overflow: hidden; }
 .altar-display {

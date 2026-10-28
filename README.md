@@ -13,11 +13,14 @@
 | Feature | Details |
 |---|---|
 | 🕯️ **Interactive Altar Builder** | Add offerings, names, dates, and memories — the altar preview updates live |
+| 🪶 **Tone & Style Controls** | Choose between Poetic, Celebratory, Solemn, or Storyteller styles |
+| 🔊 **Recite Aloud (TTS)** | Hear the remembrance read aloud with gentle browser speech synthesis |
 | 🤖 **Local AI Generation** | Runs Gemma 3 / Mistral / LLaMA via [Ollama](https://ollama.com) — no API key needed |
 | 📡 **SSE Streaming** | Remembrances stream token-by-token like a typewriter |
 | 💬 **Multi-turn Chat** | Continue the conversation: ask for a poem, translate, change the tone |
-| 🎭 **Demo Mode** | No Ollama? Try the built-in demo mode without any setup |
-| 💾 **Save as Text** | Download your remembrance as a plain `.txt` file |
+| 🎭 **Demo Mode** | No Ollama? Try the built-in demo mode with full tone selection |
+| 💾 **Save & Export** | Download as `.txt` and persist altar data to local file storage |
+| 🔄 **Draft Auto-save** | Automatic `localStorage` draft saving prevents losing progress |
 | 🌐 **Full-stack** | Express backend + Vanilla JS frontend — zero build step |
 | 🔒 **100% Offline** | Your words, your machine — nothing leaves the device |
 

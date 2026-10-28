@@ -12,6 +12,7 @@
 const state = {
   offerings: [],
   remembrance: '',
+  tone: 'poetic',
   chatHistory: [],    // [{role, content}]
   ollamaConnected: false,
   demoMode: false,
@@ -46,12 +47,15 @@ const dom = {
   connectionTitle:  $('connection-title'),
   connectionSub:    $('connection-sub'),
   fallbackNote:     $('fallback-note'),
+  tonePills:        $('tone-pills'),
   generateBtn:      $('generate-btn'),
   outputPlaceholder:$('output-placeholder'),
   outputText:       $('output-text'),
   outputLoading:    $('output-loading'),
   loadingMessage:   $('loading-message'),
   outputActions:    $('output-actions'),
+  speakBtn:         $('speak-btn'),
+  speakBtnText:     $('speak-btn-text'),
   copyBtn:          $('copy-btn'),
   regenerateBtn:    $('regenerate-btn'),
   shareBtn:         $('share-btn'),
@@ -239,31 +243,94 @@ function renderOfferings() {
   `).join('');
 }
 
-function addOffering() {
-  const val = dom.offeringInput.value.trim();
-  if (!val || state.offerings.length >= 6) return;
-  if (state.offerings.includes(val)) { showToast('Already added that offering 🌼'); return; }
+function addOffering(customVal) {
+  const val = (typeof customVal === 'string' ? customVal : dom.offeringInput.value).trim();
+  if (!val) return;
+  if (state.offerings.length >= 6) {
+    showToast('Altar is full (max 6 offerings) 🕯️');
+    return;
+  }
+  if (state.offerings.some(o => o.toLowerCase() === val.toLowerCase())) {
+    showToast('Already placed that offering 🌼');
+    return;
+  }
   state.offerings.push(val);
   dom.offeringInput.value = '';
   renderOfferings();
+  saveDraft();
 }
 
-dom.addOfferingBtn.addEventListener('click', addOffering);
+dom.addOfferingBtn.addEventListener('click', () => addOffering());
 dom.offeringInput.addEventListener('keydown', e => { if (e.key === 'Enter') addOffering(); });
+
+// Quick chip suggestions
+document.querySelectorAll('.quick-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    addOffering(chip.dataset.offering);
+  });
+});
+
 dom.offeringsGrid.addEventListener('click', e => {
   const btn = e.target.closest('.offering-remove');
   if (!btn) return;
   state.offerings.splice(Number(btn.dataset.i), 1);
   renderOfferings();
+  saveDraft();
 });
 
 /* ──────────────────────────────────────────────────────────────
-   ALTAR PREVIEW — live
+   LOCAL STORAGE PERSISTENCE & AUTO-SAVE
 ────────────────────────────────────────────────────────────── */
-dom.personName.addEventListener('input', () => {
-  const name = dom.personName.value.trim();
-  dom.altarName.querySelector('.altar-name-text').textContent = name || '—';
-  updateGenerateButton();
+const STORAGE_KEY = 'spiritus_ofrenda_draft';
+
+function saveDraft() {
+  const draft = {
+    name: dom.personName.value,
+    dates: dom.personDates.value,
+    relation: dom.personRelation.value,
+    memory: dom.personMemory.value,
+    offerings: state.offerings,
+    tone: state.tone,
+  };
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(draft));
+  } catch {}
+}
+
+function restoreDraft() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return false;
+    const draft = JSON.parse(raw);
+    if (draft.name) dom.personName.value = draft.name;
+    if (draft.dates) dom.personDates.value = draft.dates;
+    if (draft.relation) dom.personRelation.value = draft.relation;
+    if (draft.memory) dom.personMemory.value = draft.memory;
+    if (Array.isArray(draft.offerings) && draft.offerings.length) {
+      state.offerings = draft.offerings;
+    }
+    if (draft.tone) {
+      state.tone = draft.tone;
+      document.querySelectorAll('.tone-pill').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tone === draft.tone);
+      });
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────
+   ALTAR PREVIEW & FORM INPUTS — live
+────────────────────────────────────────────────────────────── */
+[dom.personName, dom.personDates, dom.personRelation, dom.personMemory].forEach(el => {
+  el.addEventListener('input', () => {
+    const name = dom.personName.value.trim();
+    dom.altarName.querySelector('.altar-name-text').textContent = name || '—';
+    updateGenerateButton();
+    saveDraft();
+  });
 });
 
 /* ──────────────────────────────────────────────────────────────
@@ -275,15 +342,24 @@ function buildPrompt() {
   const relation = dom.personRelation.value.trim()|| 'someone dear';
   const memory   = dom.personMemory.value.trim()  || '';
   const offerings= state.offerings.join(', ')     || 'marigolds and candles';
+  const tone     = state.tone || 'poetic';
 
-  return `You are Spiritus, a compassionate AI writing companion. Write a heartfelt, poetic remembrance for a Día de los Muertos digital ofrenda.
+  const toneGuides = {
+    poetic: 'Lyrical, mystical, and deeply evocative prose with rich imagery of cempasúchil and candle flame.',
+    celebratory: 'Vibrant, joyful, and honoring life with celebration, humor, and gratitude.',
+    solemn: 'Reverent, calm, dignified, and serene, honoring quiet guidance and timeless peace.',
+    storyteller: 'Narrative-driven, warming like a story told around a family table with personal anecdotes.'
+  };
 
+  return `You are Spiritus, a compassionate AI writing companion for a Día de los Muertos digital ofrenda.
+
+Tone: ${tone.toUpperCase()} (${toneGuides[tone] || toneGuides.poetic})
 Person being honored: ${name}${dates ? ` (${dates})` : ''}
 My relationship to them: ${relation}
 A cherished memory: ${memory || 'their warm presence and kindness'}
 Offerings placed on their altar: ${offerings}
 
-Write a beautiful, personal, and emotionally resonant remembrance of 3–4 paragraphs. Use lyrical prose. Weave in the specific details above. End with a brief closing line that feels like a candle being lit. Do not use generic phrases. Speak from the heart.`;
+Write a beautiful, personal, and emotionally resonant remembrance of 3–4 paragraphs in this style. Weave in the specific details above naturally. End with a poignant closing line that feels like lighting a digital candle. Speak from the heart.`;
 }
 
 /* ──────────────────────────────────────────────────────────────
@@ -318,14 +394,18 @@ async function generateRemembrance() {
 }
 
 async function runDemoMode() {
-  const name     = dom.personName.value.trim() || 'them';
-  const relation = dom.personRelation.value.trim() || 'someone dear';
+  const name      = dom.personName.value.trim() || 'them';
+  const relation  = dom.personRelation.value.trim() || 'someone dear';
+  const dates     = dom.personDates.value.trim() || '';
+  const memory    = dom.personMemory.value.trim() || '';
+  const offerings = state.offerings;
+  const tone      = state.tone || 'poetic';
 
   try {
     const res  = await fetch('/api/demo', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, relation })
+      body: JSON.stringify({ name, relation, dates, memory, offerings, tone })
     });
     const data = await res.json();
 
@@ -529,15 +609,80 @@ function genDemoReply(msg) {
 }
 
 /* ──────────────────────────────────────────────────────────────
-   ACTIONS — copy / save / regenerate
+   ACTIONS — copy / save / regenerate / recite aloud
 ────────────────────────────────────────────────────────────── */
+let currentUtterance = null;
+
+function stopSpeaking() {
+  if (window.speechSynthesis) {
+    window.speechSynthesis.cancel();
+  }
+  if (dom.speakBtn) {
+    dom.speakBtn.classList.remove('speaking');
+    dom.speakBtnText.textContent = 'Recite Aloud';
+  }
+  currentUtterance = null;
+}
+
+if (dom.speakBtn) {
+  dom.speakBtn.addEventListener('click', () => {
+    if (!state.remembrance) return;
+    if (!('speechSynthesis' in window)) {
+      showToast('Speech synthesis is not supported on this browser');
+      return;
+    }
+
+    if (window.speechSynthesis.speaking) {
+      stopSpeaking();
+      showToast('🔇 Narration stopped');
+      return;
+    }
+
+    // Clean markdown symbols from speech
+    const cleanText = state.remembrance
+      .replace(/[*_#~`]/g, '')
+      .replace(/\n+/g, ' ');
+
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.rate = 0.88;
+    utterance.pitch = 0.95;
+
+    // Pick gentle English/Spanish voice if available
+    const voices = window.speechSynthesis.getVoices();
+    const preferredVoice = voices.find(v =>
+      v.lang.startsWith('en') && (v.name.includes('Natural') || v.name.includes('Samantha') || v.name.includes('Daniel') || v.name.includes('Serena'))
+    );
+    if (preferredVoice) utterance.voice = preferredVoice;
+
+    utterance.onstart = () => {
+      dom.speakBtn.classList.add('speaking');
+      dom.speakBtnText.textContent = 'Stop Reciting';
+      showToast('🔊 Reciting remembrance aloud…');
+    };
+
+    utterance.onend = () => {
+      stopSpeaking();
+    };
+
+    utterance.onerror = () => {
+      stopSpeaking();
+    };
+
+    currentUtterance = utterance;
+    window.speechSynthesis.speak(utterance);
+  });
+}
+
 dom.copyBtn.addEventListener('click', async () => {
   if (!state.remembrance) return;
   await navigator.clipboard.writeText(state.remembrance);
   showToast('📋 Copied to clipboard');
 });
 
-dom.regenerateBtn.addEventListener('click', generateRemembrance);
+dom.regenerateBtn.addEventListener('click', () => {
+  stopSpeaking();
+  generateRemembrance();
+});
 
 dom.shareBtn.addEventListener('click', async () => {
   if (!state.remembrance) return;
@@ -548,6 +693,7 @@ dom.shareBtn.addEventListener('click', async () => {
     `${'─'.repeat(50)}\n\n`,
     state.remembrance,
     `\n\n${'─'.repeat(50)}\n`,
+    `Tone: ${state.tone.toUpperCase()}\n`,
     `Created with Spiritus · Hacktoberfest 2026\n`,
     `Open-source AI · Gemma via Ollama · Private by default\n`,
   ], { type: 'text/plain' });
@@ -571,6 +717,7 @@ dom.shareBtn.addEventListener('click', async () => {
       memory:     dom.personMemory.value.trim(),
       offerings:  state.offerings,
       remembrance:state.remembrance,
+      tone:       state.tone,
     })
   }).catch(() => {});
 });
@@ -579,11 +726,27 @@ dom.shareBtn.addEventListener('click', async () => {
    EVENTS
 ────────────────────────────────────────────────────────────── */
 dom.checkOllamaBtn.addEventListener('click', checkOllama);
-dom.generateBtn.addEventListener('click', generateRemembrance);
+dom.generateBtn.addEventListener('click', () => {
+  stopSpeaking();
+  generateRemembrance();
+});
 dom.chatSendBtn.addEventListener('click', sendChat);
 dom.chatInput.addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
 });
+
+// Tone selector pills
+if (dom.tonePills) {
+  dom.tonePills.addEventListener('click', e => {
+    const btn = e.target.closest('.tone-pill');
+    if (!btn) return;
+    document.querySelectorAll('.tone-pill').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    state.tone = btn.dataset.tone;
+    saveDraft();
+    showToast(`Style set to ${btn.dataset.tone} 🕯️`);
+  });
+}
 
 dom.useDemoBtn.addEventListener('click', () => {
   state.demoMode = true;
@@ -616,10 +779,17 @@ sections.forEach(s => observer.observe(s));
 /* ──────────────────────────────────────────────────────────────
    INIT
 ────────────────────────────────────────────────────────────── */
+const restored = restoreDraft();
 checkOllama();
+
+if (!restored || !state.offerings.length) {
+  ['marigold flowers', 'old jazz records', 'coffee'].forEach(o => {
+    if (!state.offerings.includes(o)) state.offerings.push(o);
+  });
+}
+
 renderOfferings();
-// Pre-fill a couple of demo offerings to make the altar look alive
-['marigold flowers', 'old jazz records', 'coffee'].forEach(o => {
-  if (!state.offerings.includes(o)) state.offerings.push(o);
-});
-renderOfferings();
+if (dom.personName.value.trim()) {
+  dom.altarName.querySelector('.altar-name-text').textContent = dom.personName.value.trim();
+  updateGenerateButton();
+}
